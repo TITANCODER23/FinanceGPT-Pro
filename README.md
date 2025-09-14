@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://img.shields.io/badge/MCP-Integrated-purple?style=for-the-badge" alt="MCP Integrated">
   <img src="https://img.shields.io/badge/AI-Powered-green?style=for-the-badge" alt="AI Powered">
-  <img src="https://img.shields.io/badge/Hackathon-Winner-gold?style=for-the-badge" alt="Hackathon Winner">
+  <img src="https://img.shields.io/badge/Hackovate-Winner-gold?style=for-the-badge" alt="Hackovate Winner">
   <br/>
   <img src="https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react" alt="React">
   <img src="https://img.shields.io/badge/FastAPI-0.104-009688?style=flat-square&logo=fastapi" alt="FastAPI">
@@ -12,7 +12,7 @@
 </div>
 
 <div align="center">
-  <h3>🏆 LJ Hackathon 2025 Submission</h3>
+  <h3>🏆 LJ Hackovate 2025 Submission</h3>
   <p><strong>The FIRST Financial Application to Implement Anthropic's Model Context Protocol (MCP)</strong></p>
   <p>Transform your financial management with AI that doesn't just talk - it calculates, analyzes, and executes with 100% accuracy.</p>
 </div>
@@ -116,7 +116,7 @@ FinanceGPT Pro: "Save exactly ₹8,333.33/month to reach ₹50,000 in 6 months"
         ┌─────────┴─────────┬──────────────┐
         ▼                   ▼               ▼
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│  20+ Tools   │  │ 3 Resources  │  │  Gemini AI  │
+│  14+ Tools   │  │ 3 Resources  │  │  Gemini AI  │
 └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
@@ -356,8 +356,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-- **Kush** - Full Stack Developer & MCP Integration
-- **Team FinanceGPT Pro** - LJ Hackathon 2025
+- **Kush** - AI Engineer
+- **Shivam** - Fullstack Developer
+- **Prachi** - Fullstack Developer
+- **Rumesha** - Fullstack Developer
+- **Team FinanceGPT Pro** - LJ Hackovate 2025
 
 ---
 
@@ -376,6 +379,6 @@ If you find this project innovative, please give us a ⭐ on GitHub!
 ---
 
 <div align="center">
-  <h3>Built with ❤️ for LJ Hackathon 2025</h3>
+  <h3>Built with ❤️ for LJ Hackovate 2025</h3>
   <p><strong>Transforming Financial Intelligence with MCP</strong></p>
 </div>
