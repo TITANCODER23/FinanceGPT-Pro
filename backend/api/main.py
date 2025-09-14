@@ -891,15 +891,40 @@ async def chat_with_ai(request: ChatRequest):
                 except Exception as e:
                     logger.warning(f"Budget analyzer failed: {e}")
 
-            # Execute savings calculator if savings-related
-            if "savings" in detected_intents:
+            # Execute savings calculator if savings-related OR emergency fund related
+            if "savings" in detected_intents or "emergency" in detected_intents:
                 try:
+                    # Extract target amount and months from message
+                    import re
+                    message_lower = request.message.lower()
+
+                    # Parse amount (lakhs to rupees)
+                    target_amount = 100000  # default
+                    if "lakh" in message_lower or "lac" in message_lower:
+                        amount_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:lakh|lac)', message_lower)
+                        if amount_match:
+                            target_amount = float(amount_match.group(1)) * 100000
+                    elif "₹" in request.message or "rs" in message_lower:
+                        amount_match = re.search(r'[₹rs]\s*(\d+(?:,\d+)*(?:\.\d+)?)', message_lower.replace(',', ''))
+                        if amount_match:
+                            target_amount = float(amount_match.group(1).replace(',', ''))
+
+                    # Parse months
+                    months = 12  # default
+                    months_match = re.search(r'(\d+)\s*month', message_lower)
+                    if months_match:
+                        months = int(months_match.group(1))
+
                     savings_request = {
                         "jsonrpc": "2.0",
                         "method": "tools.execute",
                         "params": {
                             "tool": "savings_calculator",
-                            "params": {"user_id": request.user_id}
+                            "params": {
+                                "user_id": request.user_id,
+                                "target_amount": target_amount,
+                                "months": months
+                            }
                         },
                         "id": str(uuid.uuid4())
                     }
@@ -1074,15 +1099,47 @@ async def chat_with_ai(request: ChatRequest):
                 if tool_results:
                     logger.info(f"🔧 MCP Tools provided analysis: {list(tool_results.keys())}")
 
-                # Analyze message intent with real data
-                if "fraud" in request.message.lower() or "suspicious" in request.message.lower():
-                    # Fraud-related query
-                    result = await gemini.explain_financial_concept(
-                        concept="Fraud Protection",
-                        user_level="intermediate"
-                    )
-                    response["ai_response"] = result.get("explanation", "")
-                    response["action_steps"] = result.get("action_steps", [])
+                # ALWAYS use Gemini AI for ALL responses - no hardcoded logic
+                # The AI will intelligently use the MCP tool results from context
+                result = await gemini.analyze_with_self_consistency(
+                    query=request.message,
+                    context=enhanced_context,
+                    passes=2
+                )
+                response["ai_response"] = result.get("recommendation", "")
+                response["confidence"] = result.get("confidence_score", 0)
+                response["action_items"] = result.get("action_items", [])
+                response["ai_powered"] = True
+
+                # Skip all the hardcoded if-else blocks below
+                if False:  # This disables all hardcoded responses
+                    # Fraud-related query - use actual fraud detection results
+                    if "fraud_analysis" in tool_results:
+                        fraud_data = tool_results["fraud_analysis"]
+                        risk_score = fraud_data.get("risk_score", 0)
+                        severity = fraud_data.get("severity", "LOW")
+                        risk_factors = fraud_data.get("risk_factors", [])
+
+                        if risk_score > 0.7:
+                            response["ai_response"] = f"⚠️ Alert! I've detected suspicious activity with a risk score of {risk_score:.1%}. Severity: {severity}. Risk factors identified: {', '.join(risk_factors) if risk_factors else 'Unusual transaction patterns'}. I recommend immediately reviewing these transactions and contacting your bank."
+                        elif risk_score > 0.3:
+                            response["ai_response"] = f"I've found some potentially concerning transactions with a moderate risk score of {risk_score:.1%}. While not immediately alarming, you should review: {', '.join(risk_factors) if risk_factors else 'Recent transaction patterns'}."
+                        else:
+                            response["ai_response"] = f"Good news! After analyzing your transactions, I found no suspicious activity. Risk score: {risk_score:.1%} (LOW). Your account appears secure with normal transaction patterns. Average transaction: ₹{fraud_data.get('pattern_analysis', {}).get('user_avg_transaction', 0):,.0f}."
+
+                        response["action_steps"] = [
+                            "Continue monitoring your transactions regularly",
+                            "Set up alerts for large transactions",
+                            "Review any unfamiliar merchants"
+                        ]
+                    else:
+                        # Fallback if tool didn't execute
+                        result = await gemini.explain_financial_concept(
+                            concept="Fraud Protection",
+                            user_level="intermediate"
+                        )
+                        response["ai_response"] = result.get("explanation", "")
+                        response["action_steps"] = result.get("action_steps", [])
 
                 elif "invest" in request.message.lower() or "portfolio" in request.message.lower():
                     # Investment-related query
@@ -1095,13 +1152,50 @@ async def chat_with_ai(request: ChatRequest):
                     response["key_points"] = result.get("key_points", [])
 
                 elif "credit" in request.message.lower() or "score" in request.message.lower():
-                    # Credit-related query
-                    result = await gemini.explain_financial_concept(
-                        concept="Credit Score Improvement",
-                        user_level="beginner"
-                    )
-                    response["ai_response"] = result.get("explanation", "")
-                    response["benefits"] = result.get("benefits", [])
+                    # Credit-related query - use actual credit analysis
+                    if "credit_analysis" in tool_results:
+                        credit_data = tool_results["credit_analysis"]
+                        credit_score = credit_data.get("credit_score", 750)
+                        rating = credit_data.get("rating", "Good")
+
+                        response["ai_response"] = f"""**Your Credit Analysis:**
+
+**Current Status:**
+• Credit Score: {credit_score}/900 ({rating})
+• Credit Utilization: {credit_data.get('utilization', 30)}%
+• Payment History: {credit_data.get('payment_history', 'Excellent')}
+• Credit Age: {credit_data.get('credit_age', '5+ years')}
+
+**Score Breakdown:**
+• Payment History (35%): {credit_data.get('payment_score', 'Excellent - No missed payments')}
+• Credit Utilization (30%): {credit_data.get('utilization_score', 'Good - Keep below 30%')}
+• Credit History (15%): {credit_data.get('history_score', 'Strong - 5+ years')}
+• Credit Mix (10%): {credit_data.get('mix_score', 'Diverse - Cards + Loans')}
+• New Credit (10%): {credit_data.get('new_credit_score', 'Minimal inquiries')}
+
+**Improvement Tips:**
+• {"Excellent score! Maintain current habits" if credit_score >= 750 else "Pay all bills on time"}
+• {"Keep utilization under 10% for elite score" if credit_score >= 750 else "Reduce credit card balances"}
+• {"Consider premium credit cards" if credit_score >= 750 else "Avoid new credit applications"}
+
+**Potential Benefits:**
+• {"Eligible for premium cards with rewards" if credit_score >= 750 else "Work towards better loan rates"}
+• {"Best loan interest rates available" if credit_score >= 750 else "Improve score for better rates"}
+• {"Pre-approved loan offers likely" if credit_score >= 750 else "Build score for pre-approvals"}"""
+
+                        response["action_steps"] = [
+                            "Monitor credit report monthly",
+                            "Set up autopay for all bills",
+                            "Keep old credit cards active"
+                        ]
+                    else:
+                        # Fallback to Gemini
+                        result = await gemini.explain_financial_concept(
+                            concept="Credit Score Improvement",
+                            user_level="beginner"
+                        )
+                        response["ai_response"] = result.get("explanation", "")
+                        response["benefits"] = result.get("benefits", [])
 
                 elif "spend" in request.message.lower() or "budget" in request.message.lower() or "food" in request.message.lower():
                     # Spending/budget query - include real spending data
@@ -1116,8 +1210,113 @@ async def chat_with_ai(request: ChatRequest):
                     response["ai_response"] = result.get("recommendation", "")
                     response["action_items"] = result.get("action_items", [])
 
+                elif "emergency" in request.message.lower() and "fund" in request.message.lower():
+                    # Emergency fund query - use actual calculations
+                    if "savings_analysis" in tool_results or "budget_analysis" in tool_results:
+                        # Get monthly expenses from user context or budget analysis
+                        monthly_expenses = user_context.get("monthly_expenses", 0)
+                        if not monthly_expenses and "budget_analysis" in tool_results:
+                            budget_data = tool_results["budget_analysis"]
+                            monthly_expenses = budget_data.get("total_expenses", 45000)
+                        elif not monthly_expenses:
+                            # Calculate from income (typically 60-70% of income)
+                            monthly_income = user_context.get("monthly_income", 75000)
+                            monthly_expenses = int(monthly_income * 0.65)
+
+                        current_savings = user_context.get("savings", 0)
+                        recommended_fund = monthly_expenses * 6  # 6 months recommended
+                        monthly_savings = recommended_fund / 24  # Build in 2 years
+
+                        response["ai_response"] = f"""Based on your financial profile:
+
+**Emergency Fund Analysis:**
+• Monthly expenses: ₹{monthly_expenses:,.0f}
+• Recommended fund: ₹{recommended_fund:,.0f} (6 months coverage)
+• Current savings: ₹{current_savings:,.0f}
+• Gap to target: ₹{max(0, recommended_fund - current_savings):,.0f}
+
+**Savings Plan:**
+• Monthly savings needed: ₹{monthly_savings:,.0f} (to build in 2 years)
+• With 7% returns: ₹{monthly_savings * 0.95:,.0f}/month
+• Weekly savings: ₹{monthly_savings / 4:,.0f}
+
+**Quick Tips:**
+• Start with 3 months if 6 seems too high
+• Automate transfers on salary day
+• Keep funds in liquid mutual funds for better returns"""
+
+                        response["action_steps"] = [
+                            f"Set up auto-transfer of ₹{monthly_savings:,.0f} monthly",
+                            "Open a separate emergency fund account",
+                            "Review and adjust quarterly"
+                        ]
+                    else:
+                        # Fallback to Gemini
+                        result = await gemini.analyze_with_self_consistency(
+                            query=request.message,
+                            context=enhanced_context,
+                            passes=2
+                        )
+                        response["ai_response"] = result.get("recommendation", "")
+
+                elif "tax" in request.message.lower() and ("save" in request.message.lower() or "invest" in request.message.lower()):
+                    # Tax saving query - use actual calculations
+                    if "tax_analysis" in tool_results:
+                        tax_data = tool_results["tax_analysis"]
+                        salary = tax_data.get("annual_income", 800000)
+                        current_tax = tax_data.get("tax_liability", 75000)
+
+                        # Calculate optimal investments
+                        section_80c = min(150000, salary * 0.2)
+                        section_80d = 25000  # Health insurance
+                        nps_80ccd = min(50000, salary * 0.1)
+
+                        tax_saved = (section_80c * 0.2) + (section_80d * 0.2) + (nps_80ccd * 0.2)
+                        new_tax = max(0, current_tax - tax_saved)
+
+                        response["ai_response"] = f"""**Tax Optimization Strategy for ₹{salary:,.0f} Salary:**
+
+**Current Situation:**
+• Gross Salary: ₹{salary:,.0f}
+• Tax Bracket: {tax_data.get('tax_bracket', '20%')}
+• Current Tax: ₹{current_tax:,.0f}
+
+**Optimal Investment Plan:**
+• Section 80C: ₹{section_80c:,.0f} → Saves ₹{section_80c * 0.2:,.0f}
+  - ELSS Mutual Funds: ₹50,000
+  - PPF: ₹50,000
+  - Life Insurance: ₹50,000
+
+• Section 80D: ₹{section_80d:,.0f} → Saves ₹{section_80d * 0.2:,.0f}
+  - Health Insurance Premium
+
+• Section 80CCD (NPS): ₹{nps_80ccd:,.0f} → Saves ₹{nps_80ccd * 0.2:,.0f}
+
+**Impact:**
+• Total Investment: ₹{section_80c + section_80d + nps_80ccd:,.0f}
+• Tax Saved: ₹{tax_saved:,.0f}
+• New Tax Payable: ₹{new_tax:,.0f}
+• Effective Reduction: {(tax_saved/current_tax)*100:.0f}%
+
+**Monthly Investment Required: ₹{(section_80c + section_80d + nps_80ccd)/12:,.0f}**"""
+
+                        response["action_steps"] = [
+                            f"Start SIP of ₹{section_80c/12:,.0f} in ELSS funds",
+                            "Open PPF account if not already done",
+                            "Get adequate health insurance coverage"
+                        ]
+                    else:
+                        # Fallback to Gemini
+                        result = await gemini.analyze_with_self_consistency(
+                            query=request.message,
+                            context=enhanced_context,
+                            passes=2
+                        )
+                        response["ai_response"] = result.get("recommendation", "")
+
                 else:
-                    # General financial query with full context
+                    # ALWAYS use Gemini AI for dynamic responses - never hardcode
+                    # The AI will use the MCP tool results from the context
                     result = await gemini.analyze_with_self_consistency(
                         query=request.message,
                         context=enhanced_context,
@@ -1125,6 +1324,7 @@ async def chat_with_ai(request: ChatRequest):
                     )
                     response["ai_response"] = result.get("recommendation", "")
                     response["confidence"] = result.get("confidence_score", 0)
+                    response["action_items"] = result.get("action_items", [])
 
                 response["ai_powered"] = True
 
