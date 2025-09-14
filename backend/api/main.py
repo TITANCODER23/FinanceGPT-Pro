@@ -967,6 +967,44 @@ async def chat_with_ai(request: ChatRequest):
                 except Exception as e:
                     logger.warning(f"Cash flow analyzer failed: {e}")
 
+            # Execute tax calculator if tax-related
+            if "tax" in detected_intents:
+                try:
+                    tax_request = {
+                        "jsonrpc": "2.0",
+                        "method": "tools.execute",
+                        "params": {
+                            "tool": "tax_calculator",
+                            "params": {"user_id": request.user_id}
+                        },
+                        "id": str(uuid.uuid4())
+                    }
+                    tax_result = await mcp_server.handle_request(tax_request, "api-request")
+                    if "result" in tax_result:
+                        tool_results["tax_analysis"] = tax_result["result"]
+                        logger.info("✅ Tax calculator executed successfully")
+                except Exception as e:
+                    logger.warning(f"Tax calculator failed: {e}")
+
+            # Execute credit analyzer if credit-related
+            if "credit" in detected_intents:
+                try:
+                    credit_request = {
+                        "jsonrpc": "2.0",
+                        "method": "tools.execute",
+                        "params": {
+                            "tool": "credit_analyzer",
+                            "params": {"user_id": request.user_id}
+                        },
+                        "id": str(uuid.uuid4())
+                    }
+                    credit_result = await mcp_server.handle_request(credit_request, "api-request")
+                    if "result" in credit_result:
+                        tool_results["credit_analysis"] = credit_result["result"]
+                        logger.info("✅ Credit analyzer executed successfully")
+                except Exception as e:
+                    logger.warning(f"Credit analyzer failed: {e}")
+
         # Fetch real user data from MCP server
         user_context = {}
         try:
