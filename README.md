@@ -12,7 +12,7 @@
 </div>
 
 <div align="center">
-  <h3>🏆 LJ Hackathon 2024 Submission</h3>
+  <h3>🏆 LJ Hackathon 2025 Submission</h3>
   <p><strong>The FIRST Financial Application to Implement Anthropic's Model Context Protocol (MCP)</strong></p>
   <p>Transform your financial management with AI that doesn't just talk - it calculates, analyzes, and executes with 100% accuracy.</p>
 </div>
@@ -357,7 +357,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Team
 
 - **Kush** - Full Stack Developer & MCP Integration
-- **Team FinanceGPT Pro** - LJ Hackathon 2024
+- **Team FinanceGPT Pro** - LJ Hackathon 2025
 
 ---
 
@@ -376,6 +376,6 @@ If you find this project innovative, please give us a ⭐ on GitHub!
 ---
 
 <div align="center">
-  <h3>Built with ❤️ for LJ Hackathon 2024</h3>
+  <h3>Built with ❤️ for LJ Hackathon 2025</h3>
   <p><strong>Transforming Financial Intelligence with MCP</strong></p>
 </div>

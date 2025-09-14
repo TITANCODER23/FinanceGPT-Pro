@@ -457,6 +457,6 @@ This is not just a chatbot with a calculator. This is the future of AI-powered a
 
 ---
 
-*Prepared for: LJ Hackathon 2024*
+*Prepared for: LJ Hackathon 2025*
 *Team: FinanceGPT Pro*
-*Date: September 2024*
+*Date: September 2025*
